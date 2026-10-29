@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Japan Gem Explorer - 観光分散・マナー・景観美化アプリ</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet CSS & JS for Interactive Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    @keyframes pulse-green {
+      0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(16,185,129,0.8)); }
+      50% { transform: scale(1.2); filter: drop-shadow(0 0 10px rgba(16,185,129,1)); }
+      100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(16,185,129,0.8)); }
+    }
+    .gem-marker-icon {
+      animation: pulse-green 2s infinite ease-in-out;
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 16px;
+      padding: 4px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .leaflet-popup-content {
+      margin: 10px 14px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col items-center justify-start p-0 sm:p-4 pb-20 sm:pb-4">
+
+  <!-- Main Mobile Shell -->
+  <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[850px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative border border-slate-200">
+
+    <!-- HEADER -->
+    <header class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+          <i class="fa-solid fa-gem text-amber-300 text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-black tracking-tight text-base leading-tight">Japan Gem Explorer</h1>
+          <p class="text-[10px] text-indigo-100 font-medium" id="header-region-badge">Japan Local Gems</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="bg-indigo-900/40 border border-indigo-300/30 px-3 py-1 rounded-full text-amber-300 font-black text-xs flex items-center gap-1 shadow-inner">
+          <i class="fa-solid fa-coins text-amber-400"></i>
+          <span id="header-points">0</span> <span class="text-[10px] text-amber-200">PTS</span>
+        </div>
+
+        <button onclick="toggleProfileModal()" class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition" title="顧客管理プロファイル">
+          <i class="fa-solid fa-user text-sm"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 p-4 overflow-y-auto mb-16 sm:mb-0">
+
+      <!-- STEP 1: LANGUAGE SELECTION -->
+      <section id="view-step-1" class="space-y-4">
+        <div class="text-center my-3">
+          <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Step 1 / 2</span>
+          <h2 class="text-xl font-black text-slate-800 mt-2">言語を選択してください</h2>
+          <p class="text-xs text-slate-500 mt-1">Select your preferred language</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 mt-4">
+          <button onclick="selectLanguage('ja')" class="p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🇯🇵</span>
+              <div class="text-left">
+                <p class="font-bold text-slate-800 group-hover:text-indigo-600">日本語</p>
+                <p class="text-xs text-slate-400">Japanese</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+
+          <button onclick="selectLanguage('en')" class="p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🇺🇸</span>
+              <div class="text-left">
+                <p class="font-bold text-slate-800 group-hover:text-indigo-600">English</p>
+                <p class="text-xs text-slate-400">English</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+
+          <button onclick="selectLanguage('zh')" class="p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🇨🇳</span>
+              <div class="text-left">
+                <p class="font-bold text-slate-800 group-hover:text-indigo-600">中文</p>
+                <p class="text-xs text-slate-400">Chinese</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+
+          <button onclick="selectLanguage('ko')" class="p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🇰🇷</span>
+              <div class="text-left">
+                <p class="font-bold text-slate-800 group-hover:text-indigo-600">한국어</p>
+                <p class="text-xs text-slate-400">Korean</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- STEP 2: REGION SELECTION -->
+      <section id="view-step-2" class="hidden space-y-4">
+        <div class="text-center my-3">
+          <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Step 2 / 2</span>
+          <h2 class="text-xl font-black text-slate-800 mt-2" data-i18n="select_region_heading">旅行する地域を選択</h2>
+          <p class="text-xs text-slate-500 mt-1" data-i18n="select_region_sub">訪れたいエリアを選んでください</p>
+        </div>
+
+        <div class="space-y-3">
+          <button onclick="selectRegion('kyoto')" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-black text-lg">
+                <i class="fa-solid fa-torii-gate"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 group-hover:text-indigo-600 text-base">京都 (Kyoto)</h3>
+                <p class="text-xs text-slate-500">伝統建築と静かな穴場寺院</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+
+          <button onclick="selectRegion('tokyo')" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-lg">
+                <i class="fa-solid fa-city"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 group-hover:text-indigo-600 text-base">東京 (Tokyo)</h3>
+                <p class="text-xs text-slate-500">浅草周辺の下町風情と穴場スポット</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+
+          <button onclick="selectRegion('osaka')" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 flex items-center justify-between group transition text-left">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-black text-lg">
+                <i class="fa-solid fa-utensils"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800 group-hover:text-indigo-600 text-base">大阪 (Osaka)</h3>
+                <p class="text-xs text-slate-500">食文化と歴史感じる水岸エリア</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-600"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- TAB 1: REGION HOME DASHBOARD -->
+      <section id="view-tab-home" class="hidden space-y-4">
+        <!-- Hero Banner -->
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded-2xl shadow-md">
+          <span class="text-[10px] bg-white/20 font-bold px-2.5 py-0.5 rounded-full" id="home-region-tag">KYOTO</span>
+          <h2 class="text-lg font-black mt-2" id="home-welcome-title">京都の魅力とスポットガイド</h2>
+          <p class="text-xs text-indigo-100 mt-1">穴場スポットの訪問や美化活動で地域貢献ポイントを獲得しましょう！</p>
+        </div>
+
+        <!-- Quick Access Shortcuts -->
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="switchTab('map')" class="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-emerald-100 transition">
+            <i class="fa-solid fa-map-location-dot text-emerald-600 text-lg mb-1"></i>
+            <span class="text-[11px] font-bold text-emerald-900">穴場マップ</span>
+          </button>
+          <button onclick="switchTab('quiz')" class="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-amber-100 transition">
+            <i class="fa-solid fa-graduation-cap text-amber-600 text-lg mb-1"></i>
+            <span class="text-[11px] font-bold text-amber-900">マナー確認</span>
+          </button>
+          <button onclick="switchTab('clean')" class="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-indigo-100 transition">
+            <i class="fa-solid fa-camera-retro text-indigo-600 text-lg mb-1"></i>
+            <span class="text-[11px] font-bold text-indigo-900">美化撮影AI</span>
+          </button>
+        </div>
+
+        <!-- Tourist Spots Cards -->
+        <div class="space-y-2">
+          <h3 class="font-bold text-xs text-slate-500 uppercase tracking-wider">観光名所・穴場一覧</h3>
+          <div id="home-spots-list" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- TAB 2: CROWD DISPERSION MAP -->
+      <section id="view-tab-map" class="hidden space-y-3">
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-3 rounded-2xl shadow text-xs flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-lg"></i>
+            <div>
+              <p class="font-bold">緑の「穴場ピン」で高得点GET！</p>
+              <p class="text-[10px] text-emerald-100">混雑している赤ピンを避け、空いている緑ピンへ行くとボーナス！</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full h-[360px] rounded-2xl overflow-hidden border-2 border-slate-200 shadow-md relative">
+          <div id="leaflet-map" class="w-full h-full z-10"></div>
+          
+          <div class="absolute bottom-2 left-2 bg-white/95 backdrop-blur p-2 rounded-xl text-[10px] shadow-md border border-slate-200 z-[1000] space-y-1">
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+              <span class="font-bold text-slate-700">有名・大混雑 (+10 Pts)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+              <span class="font-bold text-emerald-700">穴場・快適 (+250〜300 Pts)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="font-bold text-xs text-slate-500 uppercase tracking-wider">マップ一覧</h3>
+          <div id="map-spots-container" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: MANNERS QUIZ -->
+      <section id="view-tab-quiz" class="hidden space-y-4">
+        <div class="text-center my-2">
+          <span class="bg-amber-100 text-amber-900 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1">
+            <i class="fa-solid fa-graduation-cap"></i> 観光マナーガイド
+          </span>
+          <h2 class="text-base font-black text-slate-800 mt-2 leading-snug" id="quiz-question-title"></h2>
+          <p class="text-xs text-amber-600 font-bold mt-1">正解で +100 ポイント獲得！</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+          <div id="quiz-options-container" class="space-y-2"></div>
+          <div id="quiz-feedback" class="hidden p-3.5 rounded-xl text-xs space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: BEAUTIFICATION / CLEANUP PHOTO AI -->
+      <section id="view-tab-clean" class="hidden space-y-4">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles text-xl text-amber-300"></i>
+            <h2 class="font-black text-base">景観美化・クリーンアップ AI</h2>
+          </div>
+          <p class="text-xs text-blue-100 mt-1">訪問した観光地を片付けたり、きれいな状態の写真を撮影して送信するとAI解析で +150 PTS 獲得！</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-center">
+          <div class="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 transition" onclick="triggerCameraSimulation()">
+            <div class="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl mb-2">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <p class="font-bold text-xs text-slate-700">写真を撮影 / アップロード</p>
+            <p class="text-[10px] text-slate-400 mt-1">ゴミ拾いや景観維持の写真を分析します</p>
+          </div>
+
+          <!-- AI Analysis Result Box -->
+          <div id="ai-analysis-box" class="hidden p-4 rounded-xl text-xs space-y-2 text-left bg-emerald-50 border border-emerald-300">
+            <div class="flex items-center gap-2 text-emerald-800 font-bold">
+              <i class="fa-solid fa-check-circle text-base text-emerald-600"></i>
+              <span>AI解析完了: 美化活動が確認されました！</span>
+            </div>
+            <p class="text-[11px] text-emerald-900 leading-relaxed">
+              【判定結果】観光スポット周辺の美化・クリーンアップが確認されました。美しい景観の維持にご協力いただきありがとうございます！
+            </p>
+            <div class="font-black text-amber-600 text-xs text-right">+150 PTS 獲得！</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR (Visible inside app tabs) -->
+    <nav id="bottom-nav" class="hidden bg-white border-t border-slate-200 fixed sm:absolute bottom-0 left-0 right-0 z-40 flex justify-around items-center p-2 text-slate-500 text-[10px] font-bold">
+      <button onclick="switchTab('home')" id="nav-btn-home" class="flex flex-col items-center gap-1 text-indigo-600">
+        <i class="fa-solid fa-house text-base"></i>
+        <span>ホーム</span>
+      </button>
+      <button onclick="switchTab('map')" id="nav-btn-map" class="flex flex-col items-center gap-1 hover:text-indigo-600">
+        <i class="fa-solid fa-map-location-dot text-base"></i>
+        <span>マップ</span>
+      </button>
+      <button onclick="switchTab('quiz')" id="nav-btn-quiz" class="flex flex-col items-center gap-1 hover:text-indigo-600">
+        <i class="fa-solid fa-graduation-cap text-base"></i>
+        <span>マナー</span>
+      </button>
+      <button onclick="switchTab('clean')" id="nav-btn-clean" class="flex flex-col items-center gap-1 hover:text-indigo-600">
+        <i class="fa-solid fa-broom text-base"></i>
+        <span>美化撮影</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- MODAL: PROFILE LOGS -->
+  <div id="modal-profile" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto relative">
+      <button onclick="toggleProfileModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center font-bold">✕</button>
+
+      <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl font-black">
+          <i class="fa-solid fa-id-card"></i>
+        </div>
+        <div>
+          <h3 class="font-black text-lg text-slate-800">顧客管理プロファイル</h3>
+          <p class="text-xs text-slate-400" id="profile-user-id">ID: usr_883920</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-center">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <p class="text-[10px] text-slate-400 font-bold uppercase">総所有ポイント</p>
+          <p class="text-lg font-black text-amber-500" id="profile-points">0 PTS</p>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <p class="text-[10px] text-slate-400 font-bold uppercase">訪問チェックイン数</p>
+          <p class="text-lg font-black text-emerald-600" id="profile-visited-count">0 場所</p>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <h4 class="font-bold text-xs text-slate-500 uppercase tracking-wider">ポイント獲得・利用履歴ログ</h4>
+        <div id="profile-logs-list" class="space-y-1.5 max-h-48 overflow-y-auto text-xs"></div>
+      </div>
+
+      <button onclick="resetFlow()" class="w-full bg-rose-50 text-rose-600 font-bold py-2.5 rounded-xl text-xs hover:bg-rose-100 transition">
+        最初から地域を選択し直す
+      </button>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    const state = {
+      user: {
+        id: 'usr_' + Math.floor(100000 + Math.random() * 900000),
+        language: 'ja',
+        selectedRegion: null,
+        points: 0,
+        completedQuizzes: [],
+        visitedSpots: [],
+        logs: []
+      },
+      map: null,
+      mapMarkers: []
+    };
+
+    const QUIZZES = {
+      kyoto: {
+        question: '祇園や私道などで舞妓（まいこ）さんを見かけた時の正しいルールは？',
+        options: ['勝手に写真撮影や接触をせず、温かく見守る', '着物を引っぱって呼び止め自撮りする', '大声で叫んで追いかける'],
+        correctIndex: 0,
+        explanation: '私道での無断撮影は禁止されています。地域の生活空間と文化財を尊重しましょう。'
+      },
+      tokyo: {
+        question: '浅草などの観光地で食べ歩きをする際のマナーは？',
+        options: ['購入した店の前や指定エリアで食べ、ゴミは分別箱へ', '歩きながら他人の服につくよう食べる', 'ゴミを道端に捨てる'],
+        correctIndex: 0,
+        explanation: '混雑時の歩き食べは他人の服を汚すリスクがあります。購入店付近で楽しむのがマナーです。'
+      },
+      osaka: {
+        question: '神社や寺院を参拝する際の手水舎（ちょうずや）での正しいマナーは？',
+        options: ['柄杓（ひしゃく）に直接口をつけず、手を使って清める', '柄杓の水を直接飲む', '手を洗わずにそのまま賽銭箱へ向かう'],
+        correctIndex: 0,
+        explanation: '柄杓に直接口をつけるのは不衛生です。手で水を受けて口をすすぐのが礼儀です。'
+      }
+    };
+
+    const SPOTS = {
+      kyoto: {
+        name: '京都 (Kyoto)',
+        center: [34.9950, 135.7800],
+        items: [
+          { id: 'k1', name: '清水寺', desc: '【大混雑】入場待ち約45分', lat: 34.9949, lng: 135.7850, isPopular: true, pointsReward: 10 },
+          { id: 'k2', name: '毘沙門堂 (山科)', desc: '【穴場スポット】静かな紅葉と緑の寺院', lat: 34.9912, lng: 135.8155, isPopular: false, pointsReward: 250 },
+          { id: 'k3', name: '大覚寺 (嵯峨野)', desc: '【穴場スポット】広大な池庭と静寂の史跡', lat: 35.0282, lng: 135.6778, isPopular: false, pointsReward: 300 }
+        ]
+      },
+      tokyo: {
+        name: '東京・浅草 (Tokyo)',
+        center: [35.7148, 139.7967],
+        items: [
+          { id: 't1', name: '浅草寺', desc: '【大混雑】仲見世通り大混雑', lat: 35.7148, lng: 139.7967, isPopular: true, pointsReward: 10 },
+          { id: 't2', name: '旧安田庭園', desc: '【穴場スポット】静寂に包まれた心字池の庭園', lat: 35.6980, lng: 139.7932, isPopular: false, pointsReward: 250 },
+          { id: 't3', name: '向島百花園', desc: '【穴場スポット】四季の花咲く伝統庭園', lat: 35.7245, lng: 139.8142, isPopular: false, pointsReward: 280 }
+        ]
+      },
+      osaka: {
+        name: '大阪 (Osaka)',
+        center: [34.6873, 135.5262],
+        items: [
+          { id: 'o1', name: '道頓堀', desc: '【大混雑】グリコ周辺混雑', lat: 34.6687, lng: 135.5013, isPopular: true, pointsReward: 10 },
+          { id: 'o2', name: '藤田邸跡公園', desc: '【穴場スポット】緑豊かな隠れた名勝庭園', lat: 34.6935, lng: 135.5255, isPopular: false, pointsReward: 250 },
+          { id: 'o3', name: '中之島公園 芝生広場', desc: '【穴場スポット】川風が心地よい静かな水辺', lat: 34.6922, lng: 135.5088, isPopular: false, pointsReward: 270 }
+        ]
+      }
+    };
+
+    function selectLanguage(lang) {
+      state.user.language = lang;
+      document.getElementById('view-step-1').classList.add('hidden');
+      document.getElementById('view-step-2').classList.remove('hidden');
+    }
+
+    function selectRegion(regionKey) {
+      state.user.selectedRegion = regionKey;
+      document.getElementById('view-step-2').classList.add('hidden');
+      document.getElementById('bottom-nav').classList.remove('hidden');
+      
+      document.getElementById('header-region-badge').textContent = SPOTS[regionKey].name;
+      document.getElementById('home-region-tag').textContent = regionKey.toUpperCase();
+      document.getElementById('home-welcome-title').textContent = `${SPOTS[regionKey].name} ガイド & 美化活動`;
+
+      setupQuiz();
+      renderHomeSpots();
+      switchTab('home');
+    }
+
+    function renderHomeSpots() {
+      const container = document.getElementById('home-spots-list');
+      container.innerHTML = '';
+      const spots = SPOTS[state.user.selectedRegion].items;
+
+      spots.forEach((s) => {
+        const isVisited = state.user.visitedSpots.includes(s.id);
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border ${s.isPopular ? 'border-slate-200 bg-white' : 'border-emerald-200 bg-emerald-50/40'} flex items-center justify-between shadow-sm`;
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h4 class="font-bold text-xs text-slate-800">${s.name}</h4>
+              ${!s.isPopular ? `<span class="bg-emerald-200 text-emerald-800 text-[9px] px-1.5 rounded font-black">穴場</span>` : ''}
+            </div>
+            <p class="text-[10px] text-slate-500 mt-0.5">${s.desc}</p>
+          </div>
+          <div class="text-right">
+            <span class="font-black text-amber-600 text-xs">+${s.pointsReward} PTS</span>
+            <div class="mt-1">
+              ${isVisited ? `<span class="text-emerald-600 font-bold text-[10px]">訪問済</span>` : `<button onclick="checkInSpot('${s.id}')" class="bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg text-[10px]">チェックイン</button>`}
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function setupQuiz() {
+      const quiz = QUIZZES[state.user.selectedRegion];
+      document.getElementById('quiz-question-title').textContent = quiz.question;
+      const container = document.getElementById('quiz-options-container');
+      container.innerHTML = '';
+
+      quiz.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-3.5 rounded-xl border border-slate-200 hover:bg-indigo-50 text-xs font-semibold';
+        btn.textContent = opt;
+        btn.onclick = () => {
+          const feedback = document.getElementById('quiz-feedback');
+          feedback.classList.remove('hidden');
+          if (idx === quiz.correctIndex) {
+            feedback.className = 'p-3.5 rounded-xl text-xs bg-emerald-50 border border-emerald-300 text-emerald-900';
+            feedback.innerHTML = `<strong>正解！+100 PTS</strong><p class="mt-1">${quiz.explanation}</p>`;
+            addPoints(100, `マナー学習クイズ正解 (${state.user.selectedRegion.toUpperCase()})`);
+          } else {
+            feedback.className = 'p-3.5 rounded-xl text-xs bg-rose-50 border border-rose-300 text-rose-900';
+            feedback.innerHTML = `<strong>不正解です。</strong><p class="mt-1">${quiz.explanation}</p>`;
+          }
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function switchTab(tabName) {
+      ['home', 'map', 'quiz', 'clean'].forEach((t) => {
+        document.getElementById(`view-tab-${t}`).classList.add('hidden');
+        document.getElementById(`nav-btn-${t}`).classList.remove('text-indigo-600');
+      });
+
+      document.getElementById(`view-tab-${tabName}`).classList.remove('hidden');
+      document.getElementById(`nav-btn-${tabName}`).classList.add('text-indigo-600');
+
+      if (tabName === 'map') {
+        initMap();
+      }
+    }
+
+    function initMap() {
+      const region = SPOTS[state.user.selectedRegion];
+      setTimeout(() => {
+        if (!state.map) {
+          state.map = L.map('leaflet-map').setView(region.center, 12);
+          L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+            attribution: '&copy; 国土地理院',
+            maxZoom: 18
+          }).addTo(state.map);
+        } else {
+          state.map.setView(region.center, 12);
+          state.mapMarkers.forEach((m) => state.map.removeLayer(m));
+          state.mapMarkers = [];
+        }
+
+        region.items.forEach((spot) => {
+          const marker = L.marker([spot.lat, spot.lng]).addTo(state.map);
+          marker.bindPopup(`<b>${spot.name}</b><br>${spot.desc}`);
+          state.mapMarkers.push(marker);
+        });
+
+        state.map.invalidateSize();
+      }, 200);
+    }
+
+    function triggerCameraSimulation() {
+      const box = document.getElementById('ai-analysis-box');
+      box.classList.remove('hidden');
+      addPoints(150, '景観美化・クリーンアップ写真AI認証');
+    }
+
+    function checkInSpot(spotId) {
+      if (state.user.visitedSpots.includes(spotId)) return;
+      state.user.visitedSpots.push(spotId);
+      const spot = SPOTS[state.user.selectedRegion].items.find(s => s.id === spotId);
+      addPoints(spot.pointsReward, `スポット訪問: ${spot.name}`);
+      renderHomeSpots();
+      alert(`🎉 チェックイン完了！ +${spot.pointsReward} PTS 獲得！`);
+    }
+
+    function addPoints(amount, reason) {
+      state.user.points += amount;
+      state.user.logs.unshift({ timestamp: new Date().toLocaleTimeString(), amount, reason });
+      updateProfileStats();
+    }
+
+    function updateProfileStats() {
+      document.getElementById('header-points').textContent = state.user.points;
+      document.getElementById('profile-points').textContent = `${state.user.points} PTS`;
+      document.getElementById('profile-visited-count').textContent = `${state.user.visitedSpots.length} 場所`;
+      document.getElementById('profile-user-id').textContent = `ID: ${state.user.id}`;
+
+      const logsContainer = document.getElementById('profile-logs-list');
+      logsContainer.innerHTML = '';
+      state.user.logs.forEach((log) => {
+        const item = document.createElement('div');
+        item.className = 'p-2 bg-slate-50 rounded-xl border flex justify-between text-[11px]';
+        item.innerHTML = `<div><p class="font-bold">${log.reason}</p><p class="text-[9px] text-slate-400">${log.timestamp}</p></div><span class="font-black text-amber-600">+${log.amount} PTS</span>`;
+        logsContainer.appendChild(item);
+      });
+    }
+
+    function resetFlow() {
+      toggleProfileModal();
+      document.getElementById('bottom-nav').classList.add('hidden');
+      ['home', 'map', 'quiz', 'clean'].forEach((t) => document.getElementById(`view-tab-${t}`).classList.add('hidden'));
+      document.getElementById('view-step-1').classList.remove('hidden');
+    }
+
+    function toggleProfileModal() {
+      document.getElementById('modal-profile').classList.toggle('hidden');
+    }
+
+    window.onload = function () {
+      updateProfileStats();
+    };
+  </script>
+</body>
+</html>
